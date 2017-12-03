@@ -1,0 +1,147 @@
+Sub Button1_Click()
+
+    Dim wb As Workbook
+    Dim wsCMS As Worksheet
+    Dim wsAPI As Worksheet
+
+    Dim cellName As Range
+    Dim cellMarketCap As Range
+    Dim cellCMS As Range
+
+    Set wb = ActiveWorkbook
+    
+    'Refresh web queries' http requests
+    wb.RefreshAll
+    
+    Set wsCMS = wb.Sheets("CryptoMarketSize(API)")
+    Set wsAPI = wb.Sheets("ProcessedAPI")
+
+    wsAPI.Columns(2).ClearContents
+    wsAPI.Columns(4).ClearContents
+    
+    'Refresh web queries' http requests
+    wb.RefreshAll
+    
+    Set cellName = wsAPI.Range("B2")
+    Set cellMarketCap = wsAPI.Range("D2")
+    
+    cellName.Value = "Name:"
+    cellMarketCap.Value = "Market Capitalization:"
+    
+    lineRow = 2
+    nameRow = 3
+    mcRow = 3
+    'start at cell B4 and D4 on ProcessedAPI
+    ' and at cell D2 on CryptoMarketSize(API)
+    Set cellName = wsAPI.Range("B" & nameRow)
+    Set cellMarketCap = wsAPI.Range("D" & mcRow)
+    Set cellCMS = wsCMS.Range("D" & lineRow)
+    'while Dsub(k) is not null do: //every line in the CryptoMarketSize(API)
+    While cellCMS.Value <> ""
+        
+        'checks if line contains "name":
+        If hasName(cellCMS.Value) Then
+            'insert name into ProcessedAPI
+            cellName.Value = getName(cellCMS.Value)
+            nameRow = nameRow + 1
+        End If
+        
+        'check if line contains "market_cap_usd":
+        If hasMarketCap(cellCMS.Value) Then
+            'insert MarketCap into ProcessedAPI
+            'increment Dsub(4) to Dsub(i+1)
+            cellMarketCap.Value = getMarketCap(cellCMS.Value)
+            mcRow = mcRow + 1
+       End If
+        
+        'set cellCMS to next line from web query
+        lineRow = lineRow + 1
+        Set cellCMS = wsCMS.Range("D" & lineRow)
+        Set cellName = wsAPI.Range("B" & nameRow)
+        Set cellMarketCap = wsAPI.Range("D" & mcRow)
+        
+    Wend
+
+    wb.RefreshAll
+
+End Sub
+
+Function hasName(line As String) As Boolean
+
+    Dim strArray As Variant
+
+    strArray = Split(line, " ")
+
+    hasName = False
+    For i = 0 To UBound(strArray)
+        If strArray(i) = """name"":" Then
+            hasName = True
+        End If
+    Next
+
+End Function
+
+Function hasMarketCap(line As String) As Boolean
+
+    Dim strArray As Variant
+
+    strArray = Split(line, " ")
+
+    hasMarketCap = False
+    For i = 0 To UBound(strArray)
+        If strArray(i) = """market_cap_usd"":" Then
+            hasMarketCap = True
+        End If
+    Next
+
+End Function
+
+Function getMarketCap(line As String) As Double
+
+    Dim foundMarketCap As Boolean
+    Dim marketCap As String
+    Dim strArray As Variant
+
+    strArray = Split(line, " ")
+
+    'finds bid price in line array separated by blank spaces
+    For i = 0 To UBound(strArray)
+        If foundMarketCap Then
+            marketCap = strArray(i)
+            If foundMarketCap Then Exit For
+        End If
+
+        If strArray(i) = """market_cap_usd"":" Then
+            foundMarketCap = True
+        End If
+    Next
+
+    'removes quotes from name string
+    marketCap = Replace(marketCap, """", "")
+    marketCap = Replace(marketCap, ",", "")
+
+    getMarketCap = CDbl(marketCap)
+
+End Function
+
+Function getName(line As String) As String
+
+    Dim foundName As Boolean
+    Dim name As String
+    Dim strArray As Variant
+
+    strArray = Split(line, ":")
+    strArray(0) = Trim(strArray(0))
+    strArray(1) = Trim(strArray(1))
+    
+    If strArray(i) = """name""" Then
+            name = strArray(1)
+    End If
+
+    'removes quotes from name string
+    name = Replace(name, """", "")
+    name = Replace(name, ",", "")
+
+    getName = name
+
+End Function
